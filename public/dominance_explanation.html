@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>支配度・強豪スコア 計算式解説 — 衆院選2026 シミュレーター</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', 'Meiryo', sans-serif;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      background: #f9fafb;
+      color: #1f2937;
+      line-height: 1.7;
+    }
+    h1 { font-size: 1.4rem; border-bottom: 2px solid #dc2626; padding-bottom: 8px; margin-bottom: 24px; }
+    h2 { font-size: 1.1rem; color: #dc2626; margin-top: 2rem; }
+    h3 { font-size: 1rem; color: #374151; }
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin: 12px 0;
+    }
+    th {
+      background: #374151;
+      color: #fff;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    td { padding: 7px 12px; border-bottom: 1px solid #e5e7eb; }
+    tr:nth-child(even) td { background: #f9fafb; }
+    .formula-box {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 12px 0;
+      font-family: 'Courier New', monospace;
+    }
+    .bug-box {
+      background: #fef2f2;
+      border-left: 4px solid #dc2626;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 12px 0;
+    }
+    .fix-box {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 12px 0;
+    }
+    .note {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      margin: 12px 0;
+    }
+    .bad { color: #dc2626; font-weight: bold; }
+    .good { color: #16a34a; font-weight: bold; }
+    nav { margin-bottom: 24px; }
+    nav a { color: #2563eb; text-decoration: none; margin-right: 16px; font-size: 0.9rem; }
+    nav a:hover { text-decoration: underline; }
+    footer { margin-top: 40px; font-size: 0.8rem; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+  </style>
+</head>
+<body>
+
+<h1>⚔️ 支配度・強豪スコア 計算式解説</h1>
+
+<nav>
+  <a href="#dominance">① 支配度とは</a>
+  <a href="#score">② 強豪スコアとは</a>
+  <a href="#death">③ 死の組の選び方</a>
+  <a href="#bug">④ バグ発生の経緯</a>
+  <a href="#fix">⑤ 修正内容</a>
+</nav>
+
+<p>
+  このページは <strong>衆院選2026シミュレーター</strong> における「死の組」「全選挙区強豪区ランキング」の
+  計算式を解説します。開発中に発覚した票数データのバグと、その修正内容についても記録します。
+</p>
+
+<!-- ① 支配度 -->
+<h2 id="dominance">① 支配度（dominanceRatio）</h2>
+
+<h3>定義</h3>
+<p>
+  各候補者の「元の選挙区でどれだけ強かったか」を表す数値です。
+  <strong>当選者（小選挙区）</strong>と<strong>落選者・比例復活当選者</strong>で計算式が異なります。
+</p>
+
+<div class="formula-box">
+  <strong>当選者（smd_win）:</strong><br>
+  　支配度 = 当選者の得票率 ÷ 次点者の得票率　（結果: >1.0）<br><br>
+  <strong>落選者・比例復活当選者:</strong><br>
+  　支配度 = 自分の得票率 ÷ 当選者の得票率　（結果: 0〜1.0、惜敗率に相当）
+</div>
+
+<h3>例：石川3区（第51回衆院選2026）</h3>
+<table>
+  <tr><th>候補者</th><th>得票率</th><th>当落</th><th>支配度</th><th>表示</th></tr>
+  <tr><td>にしだ 昭二（自民）</td><td>51.9%</td><td>小選挙区当選</td><td>51.9÷46.1 = <strong>1.13</strong></td><td>1.13倍</td></tr>
+  <tr><td>こんどう 和也（中道改革）</td><td>46.1%</td><td>比例復活当選</td><td>46.1÷51.9 = <strong>0.888</strong></td><td>惜88.8%</td></tr>
+  <tr><td>南 しょうじ（共産）</td><td>2.0%</td><td>落選</td><td>2.0÷51.9 = <strong>0.039</strong></td><td>惜3.9%</td></tr>
+</table>
+
+<div class="note">
+  <strong>なぜ得票率（<code>originalVoteRate</code>）を使うのか？</strong><br>
+  絶対的な票数（<code>votes</code>）はスクレイピングバグにより一部候補者で誤った値が入っていました。
+  得票率は各選挙区内の合計が ≈ 1.0 になることで整合性を確認でき、信頼性が高いため採用しています。
+  （詳細は <a href="#bug">④ バグ発生の経緯</a>）
+</div>
+
+<!-- ② 強豪スコア -->
+<h2 id="score">② 強豪スコア（intensity）</h2>
+
+<div class="formula-box">
+  強豪スコア = 上位3候補の平均支配度 × （強豪候補の人数 ÷ 3）<br><br>
+  <strong>強豪候補の定義:</strong><br>
+  　・当選者の場合: 支配度 &gt; 1.2 （元の選挙区で20%以上の差をつけて勝利）<br>
+  　・落選者の場合: 惜敗率 &gt; 0.8 （当選者の80%以上の票を獲得した僅差の落選）
+</div>
+
+<h3>閾値の根拠</h3>
+<table>
+  <tr><th>閾値</th><th>意味</th><th>根拠</th></tr>
+  <tr><td>当選者 &gt; 1.2倍</td><td>20%以上の差で勝利</td><td>実データの支配度分布: 中央値 1.64、平均 2.69。1.2は競争区の下限</td></tr>
+  <tr><td>落選者 &gt; 0.8（惜敗率80%超）</td><td>非常に僅差の落選</td><td>一般に惜敗率80%超は「激戦」と呼ばれる</td></tr>
+</table>
+
+<!-- ③ 死の組 -->
+<h2 id="death">③ 死の組の選び方</h2>
+
+<pre>
+STEP 1: 元の選挙区ごとに全候補者の支配度を計算
+　　　　　当選者: 得票率 / 次点得票率 (>1.0)
+　　　　　落選者: 自分の得票率 / 当選者得票率 (0~1.0 = 惜敗率)
+
+STEP 2: シミュレーション後の全289区で強豪スコアを計算
+　　　　　各区の上位3候補の支配度から avgDominance と strongCount を算出
+　　　　　intensity = avgDominance × (strongCount / 3)
+
+STEP 3: 全289区を intensity 降順でソート
+　　　　　→ 上位10区が「死の組」TOP10
+　　　　　→ 全289区分が「全選挙区強豪区ランキング」
+</pre>
+
+<p>
+  重要なのは <strong>「元の選挙区での強さ」が基準</strong>であり、
+  シミュレーション後の新しい選挙区でどう戦うかを予測するものではありません。
+  「実際の選挙で強かった人たちが同じ区に集まった」という偶然の過酷さを可視化しています。
+</p>
+
+<!-- ④ バグの経緯 -->
+<h2 id="bug">④ バグ発生の経緯</h2>
+
+<div class="bug-box">
+  <strong>バグ: 一部候補者の票数（votes）が正しい値の約1/100以下になっていた</strong><br>
+  影響: 票数ベースで当選者を判定していたため、誤った候補者が「当選者」と判定され、
+  支配度が異常な値（最大150倍以上）になっていた。
+</div>
+
+<h3>発覚したきっかけ</h3>
+<p>
+  「全選挙区強豪区ランキング」に以下の異常値が表示されたことで発覚：
+</p>
+<table>
+  <tr><th>候補者</th><th>表示された支配度（バグあり）</th><th>正しい支配度</th></tr>
+  <tr><td>こんどう 和也（石川3区）</td><td class="bad">90.1倍</td><td class="good">惜88.8%（比例復活当選）</td></tr>
+  <tr><td>日野 さりあ（愛知7区）</td><td class="bad">120.6倍</td><td class="good">1.14倍（小選挙区当選）</td></tr>
+  <tr><td>梶原 みずほ（東京10区）</td><td class="bad">150.4倍</td><td class="good">惜53.5%（落選）</td></tr>
+</table>
+
+<h3>バグの原因</h3>
+<p>
+  スクレイピングスクリプト（<code>scrape_candidates.py</code>）が、同一選挙区内に
+  <strong>同じ名前（名字または名前）を持つ複数の候補者</strong>がいる場合に、
+  HTMLテーブルの行を誤って識別し、票数データを別候補者の行と混同していた。
+</p>
+
+<table>
+  <tr><th>選挙区</th><th>混同の理由</th><th>影響候補者</th></tr>
+  <tr><td>東京3区</td><td>名前が「ひろたか」で同一</td><td>石原ひろたか / 植木ひろたか</td></tr>
+  <tr><td>東京10区</td><td>名字が「鈴木」で同一</td><td>鈴木隼人 / 鈴木ようすけ</td></tr>
+  <tr><td>愛知7区</td><td>名字が「鈴木」で同一</td><td>鈴木じゅんじ / 鈴木こういち</td></tr>
+  <tr><td>愛知10区</td><td>名前が「りょうへい」で同一</td><td>三嶋りょうへい / 山内りょうへい</td></tr>
+  <tr><td>兵庫6区</td><td>名前が「浩一郎」で同一</td><td>いちむら浩一郎 / 谷浩一郎</td></tr>
+  <tr><td>茨城2区</td><td>名前が「たくみ」で同一</td><td>小沼たくみ / 宮内たくみ</td></tr>
+  <tr><td>石川3区</td><td>特定パターンは不明</td><td>にしだ昭二 / 南しょうじ</td></tr>
+  <tr><td>熊本4区</td><td>異なる名前だが同パターン</td><td>植田たかとし / 上田いたる</td></tr>
+</table>
+
+<p>合計: <strong>8選挙区・16候補者</strong>で <code>votes</code> フィールドに異常値を確認。</p>
+
+<h3>なぜ <code>originalVoteRate</code> は正しかったのか</h3>
+<p>
+  <code>originalVoteRate</code>（得票率）はスクレイピング時に各候補者の行から独立して取得されており、
+  同名候補者間での混同が発生しなかった。
+  各選挙区内で候補者の <code>originalVoteRate</code> を合計すると ≈1.0 になることで正確性を確認済み。
+</p>
+
+<!-- ⑤ 修正内容 -->
+<h2 id="fix">⑤ 修正内容（2026-06-15 適用）</h2>
+
+<h3>修正1: データ修正（P0-6B/C）</h3>
+<p>
+  go2senkyo（第51回衆院選2026）から正しい票数を照合し、
+  <code>public/data/candidates.json</code> の <code>votes</code> フィールドを修正。
+</p>
+
+<table>
+  <tr><th>候補者</th><th>修正前</th><th>修正後（正）</th></tr>
+  <tr><td>鈴木 隼人（東京10区）</td><td class="bad">286票</td><td class="good">126,044票</td></tr>
+  <tr><td>石原 ひろたか（東京3区）</td><td class="bad">548票</td><td class="good">93,158票</td></tr>
+  <tr><td>にしだ 昭二（石川3区）</td><td class="bad">720票</td><td class="good">73,034票</td></tr>
+  <tr><td>鈴木 じゅんじ（愛知7区）</td><td class="bad">898票</td><td class="good">94,973票</td></tr>
+  <tr><td>いちむら 浩一郎（兵庫6区）</td><td class="bad">590票</td><td class="good">63,444票</td></tr>
+  <tr><td>（他11候補者も同様に修正）</td><td>—</td><td>—</td></tr>
+</table>
+
+<h3>修正2: アルゴリズム修正（P6-10A+D）</h3>
+<p>
+  <strong>根本的な解決策</strong>として、支配度計算で <code>votes</code> を使わないよう変更。
+  今後 <code>votes</code> に別のバグがあっても支配度計算に影響しない。
+</p>
+
+<div class="fix-box">
+  <strong>変更前（バグあり）:</strong><br>
+  　票数（votes）の降順で当選者を判定 → 票数が誤っていると誤判定<br>
+  　当選者支配度 = winner.votes / runnerUp.votes<br>
+  　落選者支配度 = 0（固定）<br><br>
+  <strong>変更後（修正済み）:</strong><br>
+  　<code>elected === 'smd_win'</code> で当選者を特定（票数不使用）<br>
+  　当選者支配度 = winner.originalVoteRate / runnerUp.originalVoteRate<br>
+  　落選者支配度 = loser.originalVoteRate / winner.originalVoteRate（惜敗率）
+</div>
+
+<h3>修正後の確認値</h3>
+<table>
+  <tr><th>選挙区</th><th>候補者</th><th>修正前</th><th>修正後</th></tr>
+  <tr><td>東京10区</td><td>鈴木 隼人（当選）</td><td class="bad">—（0と誤判定）</td><td class="good">1.87倍</td></tr>
+  <tr><td>東京10区</td><td>梶原 みずほ（次点）</td><td class="bad">150.4倍（誤）</td><td class="good">惜53.5%</td></tr>
+  <tr><td>石川3区</td><td>にしだ 昭二（当選）</td><td class="bad">0（誤判定）</td><td class="good">1.13倍</td></tr>
+  <tr><td>石川3区</td><td>こんどう 和也（比例復活）</td><td class="bad">90.1倍（誤）</td><td class="good">惜88.8%</td></tr>
+  <tr><td>愛知7区</td><td>日野 さりあ（当選）</td><td class="bad">120.6倍（誤）</td><td class="good">1.14倍</td></tr>
+  <tr><td>愛知7区</td><td>鈴木 じゅんじ（比例復活）</td><td class="bad">0（誤判定）</td><td class="good">惜87.6%</td></tr>
+</table>
+
+<footer>
+  衆院選2026シミュレーター — 計算式解説ドキュメント（最終更新: 2026-06-15）<br>
+  データソース: 選挙ドットコム（go2senkyo）第51回衆議院議員総選挙（2026年2月8日執行）
+</footer>
+
+</body>
+</html>

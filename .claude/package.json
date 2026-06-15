@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "dev":     "portless myapp npm run dev:web",
+    "dev:api": "portless api.myapp npm run dev:server",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:api\""
+  }
+}

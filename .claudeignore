@@ -1,0 +1,38 @@
+# ビルド成果物
+dist/
+build/
+out/
+.next/
+.nuxt/
+
+# 依存関係
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# キャッシュ
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.parcel-cache/
+*.tsbuildinfo
+
+# テストカバレッジ
+coverage/
+.coverage
+htmlcov/
+lcov.info
+
+# ログ・一時ファイル
+*.log
+npm-debug.log*
+*.tmp
+*.temp
+
+# OS
+.DS_Store
+Thumbs.db

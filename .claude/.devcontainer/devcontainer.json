@@ -1,0 +1,27 @@
+{
+  "name": "myapp",
+
+  // 使うDockerイメージ（またはDockerfileを指定）
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22",
+
+  // コンテナ起動後に自動実行するコマンド
+  "postCreateCommand": "npm install",
+
+  // VS Code にインストールする拡張機能
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  },
+
+  // ホスト↔コンテナ間のポート転送
+  "forwardPorts": [1355],
+
+  // 環境変数
+  "remoteEnv": {
+    "PORTLESS_PORT": "1355"
+  }
+}

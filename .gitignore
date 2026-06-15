@@ -1,0 +1,48 @@
+# Node
+node_modules/
+.npm/
+dist/
+.next/
+.nuxt/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 環境変数（機密情報）
+.env
+.env.local
+.env.*.local
+!.env.portless
+
+# OS
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# ログ
+*.log
+npm-debug.log*
+
+# テスト
+coverage/
+.coverage
+htmlcov/
+
+# 一時ファイル
+tmp/
+
+# Claude Code（セッション固有の一時ファイルは除外するが設定は含める）
+# .claude/ は含める（エージェント設定等を共有するため）
