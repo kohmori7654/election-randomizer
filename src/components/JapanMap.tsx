@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, memo } from 'react'
+import { useState, useMemo, useRef, useEffect, memo } from 'react'
 import type { SimulationResult, ConstituencyResult, PartyId, SimCandidate } from '../types/election'
 import { PARTIES } from '../data/parties'
 import { PREFECTURE_GRID } from '../data/prefectureGrid'
@@ -67,6 +67,15 @@ export function JapanMap({ result }: JapanMapProps) {
 
   const prefStats = useMemo(() => buildPrefStats(result), [result])
   const selectedPrefStats = selectedPref ? prefStats.get(selectedPref) : null
+
+  useEffect(() => {
+    const top = result.constituencyRanking[0]
+    if (!top) return
+    const topResult = result.constituencies.find(c => c.constituencyId === top.constituencyId)
+    if (!topResult) return
+    setSelectedPref(topResult.prefecture)
+    setSelectedConstituency(topResult)
+  }, [result])
 
   function handlePrefClick(prefName: string) {
     setSelectedPref(prev => (prev === prefName ? null : prefName))
