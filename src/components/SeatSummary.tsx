@@ -6,52 +6,76 @@ interface SeatSummaryProps {
 }
 
 const MAJORITY = 233
+const TWO_THIRDS = 310
 
 export function SeatSummary({ result }: SeatSummaryProps) {
   const { seatsByParty } = result
   const totalSeats = Object.values(seatsByParty).reduce((s, p) => s + p.total, 0)
 
-  const sortedParties = PARTY_LIST
-    .filter(p => (seatsByParty[p.id]?.total ?? 0) > 0)
-    .sort((a, b) => (seatsByParty[b.id]?.total ?? 0) - (seatsByParty[a.id]?.total ?? 0))
+  const sortedParties = (() => {
+    const base = PARTY_LIST
+      .filter(p => (seatsByParty[p.id]?.total ?? 0) > 0)
+      .sort((a, b) => (seatsByParty[b.id]?.total ?? 0) - (seatsByParty[a.id]?.total ?? 0))
+    const ishinIdx = base.findIndex(p => p.id === 'ishin')
+    const ldpIdx = base.findIndex(p => p.id === 'ldp')
+    if (ishinIdx !== -1 && ldpIdx !== -1 && ishinIdx !== ldpIdx + 1) {
+      const [ishin] = base.splice(ishinIdx, 1)
+      const insertAt = base.findIndex(p => p.id === 'ldp') + 1
+      base.splice(insertAt, 0, ishin)
+    }
+    return base
+  })()
 
   const ldpTotal = seatsByParty['ldp']?.total ?? 0
-  const coalitionTotal = (['ldp', 'sansei'] as PartyId[]).reduce(
+  const coalitionTotal = (['ldp', 'ishin'] as PartyId[]).reduce(
     (s, id) => s + (seatsByParty[id]?.total ?? 0), 0
   )
   const hasMajority = coalitionTotal >= MAJORITY
 
   return (
     <section className="bg-white border-b border-gray-200 px-4 py-3">
-      {/* 議席棒グラフ */}
-      <div className="flex h-8 w-full rounded overflow-hidden mb-3">
-        {sortedParties.map(p => {
-          const seats = seatsByParty[p.id]?.total ?? 0
-          const pct = (seats / totalSeats) * 100
-          return (
-            <div
-              key={p.id}
-              style={{ width: `${pct}%`, backgroundColor: p.color }}
-              title={`${p.name}: ${seats}議席`}
-              className="flex items-center justify-center text-white text-xs font-bold overflow-hidden"
-            >
-              {pct >= 3 ? seats : ''}
-            </div>
-          )
-        })}
-      </div>
+      {/* 議席棒グラフ＋ライン wrapper */}
+      <div className="relative mb-5">
+        {/* 議席棒グラフ */}
+        <div className="flex h-8 w-full rounded overflow-hidden">
+          {sortedParties.map(p => {
+            const seats = seatsByParty[p.id]?.total ?? 0
+            const pct = (seats / totalSeats) * 100
+            return (
+              <div
+                key={p.id}
+                style={{ width: `${pct}%`, backgroundColor: p.color }}
+                title={`${p.name}: ${seats}議席`}
+                className="flex items-center justify-center text-white text-xs font-bold overflow-hidden"
+              >
+                {pct >= 3 ? seats : ''}
+              </div>
+            )
+          })}
+        </div>
 
-      {/* 過半数ライン */}
-      <div className="relative h-1 mb-3">
+        {/* 過半数ライン（グラフ上に absolute 重ね） */}
         <div
-          className="absolute top-0 w-0.5 h-4 bg-gray-800"
+          className="absolute top-0 w-0.5 h-8 bg-gray-800 pointer-events-none"
           style={{ left: `${(MAJORITY / totalSeats) * 100}%` }}
         />
         <span
-          className="absolute text-xs text-gray-500 -translate-x-1/2"
-          style={{ left: `${(MAJORITY / totalSeats) * 100}%`, top: '1rem' }}
+          className="absolute text-xs text-gray-700 -translate-x-1/2 font-bold"
+          style={{ left: `${(MAJORITY / totalSeats) * 100}%`, top: '100%', marginTop: '2px' }}
         >
           過半数 {MAJORITY}
+        </span>
+
+        {/* 2/3 ライン（グラフ上に absolute 重ね） */}
+        <div
+          className="absolute top-0 w-0.5 h-8 bg-red-600 pointer-events-none"
+          style={{ left: `${(TWO_THIRDS / totalSeats) * 100}%` }}
+        />
+        <span
+          className="absolute text-xs text-red-600 -translate-x-1/2 font-bold"
+          style={{ left: `${(TWO_THIRDS / totalSeats) * 100}%`, top: '100%', marginTop: '2px' }}
+        >
+          2/3 {TWO_THIRDS}
         </span>
       </div>
 

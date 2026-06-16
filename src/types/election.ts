@@ -116,6 +116,10 @@ export interface ProportionalRankingEntry {
   partyId: PartyId
   bloc: BlocName
   smdCandidateId: number | null
+  /** 比例単独候補か（true = 小選挙区非立候補） */
+  isProportionalOnly: boolean
+  /** 小選挙区の選挙区名（比例単独は null） */
+  constituencyName: string | null
   /** 実際の選挙での惜敗率（小選挙区当選 = 1.0、供託没収相当 ≈ 0） */
   realHaiseiritsu: number
   /** シミュでの惜敗率（小選挙区当選 = null、資格外 = 0） */
@@ -141,7 +145,7 @@ export interface SimulationResult {
   timestamp: number
 }
 
-/** 死の組（圧勝候補同士の激突選挙区） */
+/** 死の組（有力候補同士の激突選挙区） */
 export interface DeathGroup {
   constituencyId: number
   constituencyName: string

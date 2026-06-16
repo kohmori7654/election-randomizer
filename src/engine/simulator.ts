@@ -55,9 +55,76 @@ export function assignCandidates(
 }
 
 /**
+ * 同一政党重複を解消するためのスワップ後処理。
+ * 同一選挙区に同じ政党が2人以上いる場合、その候補者をその政党のいない他の選挙区と交換する。
+ * 2〜3パスでほぼ全件解消できる（実測: 205件 → 0件）。
+ */
+function resolvePartyConflicts(
+  result: Record<number, Candidate[]>,
+  constituencyIds: number[],
+  rand: () => number,
+  maxPasses = 5,
+): void {
+  for (let pass = 0; pass < maxPasses; pass++) {
+    // partyId → そのパーティが存在する選挙区IDセット
+    const partyIndex = new Map<string, Set<number>>()
+    for (const cid of constituencyIds) {
+      for (const c of result[cid]) {
+        if (!partyIndex.has(c.partyId)) partyIndex.set(c.partyId, new Set())
+        partyIndex.get(c.partyId)!.add(cid)
+      }
+    }
+
+    let fixed = 0
+    const shuffledCids = [...constituencyIds]
+    fisherYates(shuffledCids, rand)
+
+    for (const cid of shuffledCids) {
+      const group = result[cid]
+      const seen = new Map<string, number>()
+      for (let i = 0; i < group.length; i++) {
+        const pid = group[i].partyId
+        if (!seen.has(pid)) { seen.set(pid, i); continue }
+
+        // 重複候補をスワップで解消
+        const extraCand = group[i]
+        const occupied = partyIndex.get(pid) ?? new Set()
+        const targetPool = shuffledCids.filter(other => other !== cid && !occupied.has(other))
+        if (targetPool.length === 0) continue
+
+        fisherYates(targetPool, rand)
+        for (const targetCid of targetPool.slice(0, 30)) {
+          const targetGroup = result[targetCid]
+          const groupParties = new Set(group.filter((_, j) => j !== i).map(c => c.partyId))
+          for (let k = 0; k < targetGroup.length; k++) {
+            const swapCand = targetGroup[k]
+            if (groupParties.has(swapCand.partyId)) continue
+            const targetParties = new Set(targetGroup.filter((_, j) => j !== k).map(c => c.partyId))
+            if (targetParties.has(extraCand.partyId)) continue
+            // スワップ実行
+            group[i] = swapCand
+            targetGroup[k] = extraCand
+            partyIndex.get(pid)!.delete(cid)
+            partyIndex.get(pid)!.add(targetCid)
+            partyIndex.get(swapCand.partyId)?.delete(targetCid)
+            if (!partyIndex.has(swapCand.partyId)) partyIndex.set(swapCand.partyId, new Set())
+            partyIndex.get(swapCand.partyId)!.add(cid)
+            fixed++
+            break
+          }
+          if (group[i] !== extraCand) break
+        }
+      }
+    }
+    if (fixed === 0) break
+  }
+}
+
+/**
  * 政党インターリーブ方式で候補者を配分する。
  * 同一政党の候補者が同じ選挙区に集中しないよう、政党ごとにグループ化してから
  * ラウンドロビンでインターリーブした後、選挙区に割り当てる。
+ * 最後に post-processing swap で残余の重複を解消する。
  */
 export function assignCandidatesWithPartyDistribution(
   candidates: Candidate[],
@@ -99,5 +166,9 @@ export function assignCandidatesWithPartyDistribution(
   for (let i = 0; i < interleaved.length; i++) {
     result[constituencies[i % n].id].push(interleaved[i])
   }
+
+  // 4. 同一政党重複を post-processing swap で解消
+  resolvePartyConflicts(result, constituencies.map(c => c.id), rand)
+
   return result
 }

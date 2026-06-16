@@ -10,7 +10,7 @@ export const PARTIES: Record<PartyId, Party> = {
   jcp:    { id: 'jcp',    name: '日本共産党',            shortName: '共産',   color: '#DB001B' },
   reiwa:  { id: 'reiwa',  name: 'れいわ新選組',          shortName: 'れいわ', color: '#E4007F' },
   genzei: { id: 'genzei', name: '減税日本・ゆうこく連合', shortName: '減税',   color: '#2C3F8C' },
-  nhk:    { id: 'nhk',    name: 'NHK党',                shortName: 'NHK',    color: '#00A0E9' },
+  nhk:    { id: 'nhk',    name: '日本保守党',            shortName: '保守党', color: '#00A0E9' },
   sdp:    { id: 'sdp',    name: '社民党',               shortName: '社民',   color: '#00AA44' },
   ind:    { id: 'ind',    name: '無所属',               shortName: '無所属', color: '#888888' },
 }
@@ -21,34 +21,41 @@ export function getParty(id: PartyId): Party {
   return PARTIES[id]
 }
 
-/** 政党のイデオロギーブロック（票割れペナルティ計算用） */
-export const IDEOLOGICAL_BLOC: Record<PartyId, 'conservative' | 'progressive' | 'center'> = {
-  ldp:    'conservative',
-  sansei: 'conservative',
-  genzei: 'conservative',
+export type IdeologicalBloc = 'conservative' | 'progressive' | 'center' | 'other'
+
+/** 政党のイデオロギーブロック（票割れペナルティ計算用・一次ブロック） */
+export const IDEOLOGICAL_BLOC: Record<PartyId, IdeologicalBloc> = {
   nhk:    'conservative',
-  ishin:  'center',
-  dpfp:   'center',
+  sansei: 'conservative',
+  ishin:  'conservative',
+  ldp:    'conservative',
   tm:     'center',
-  crc:    'progressive',
-  jcp:    'progressive',
+  dpfp:   'center',
+  crc:    'center',        // 二次ブロックに progressive も持つ（SECONDARY_BLOC参照）
   reiwa:  'progressive',
   sdp:    'progressive',
-  ind:    'center',
+  jcp:    'progressive',
+  genzei: 'other',
+  ind:    'other',
+}
+
+/** 複数ブロックに跨る政党の二次ブロック（票割れ計算時に強い方を採用） */
+export const SECONDARY_BLOC: Partial<Record<PartyId, IdeologicalBloc>> = {
+  crc: 'progressive',
 }
 
 /** 政党の「地盤スコア」（有権者傾向との親和性計算用） */
 export const PARTY_POLITICAL_SCORE: Record<PartyId, number> = {
-  ldp:    0.8,
-  crc:    0.3,
-  ishin:  0.5,
-  dpfp:   0.4,
-  sansei: 0.7,
-  tm:     0.45,
-  jcp:    0.1,
-  reiwa:  0.2,
-  genzei: 0.6,
-  nhk:    0.5,
-  sdp:    0.2,
-  ind:    0.5,
+  nhk:    0.90,
+  sansei: 0.80,
+  ishin:  0.70,
+  ldp:    0.65,
+  ind:    0.50,
+  genzei: 0.50,
+  tm:     0.50,
+  dpfp:   0.40,
+  crc:    0.30,
+  reiwa:  0.20,
+  sdp:    0.10,
+  jcp:    0.10,
 }

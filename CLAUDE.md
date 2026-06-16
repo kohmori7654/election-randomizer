@@ -45,6 +45,15 @@ token budget concerns. Continue working until the task is fully complete.
 
 詳細: `.claude/workflows/session_handoff.md`
 
+## タスク実行の鉄則（必須）
+
+**SESSION.md のタスクは必ず 1 件ずつ実行すること。**
+
+- ユーザーが「タスクを消化して」「優先度順に実行して」と指示しても、**最優先の 1 件のみ**実行する
+- 実行完了後、SESSION.md を更新してユーザーに完了を報告する
+- ユーザーの次の指示を待ってから、次のタスクに進む
+- 複数タスクの一括実行は出力トークン上限エラーの原因となるため**禁止**
+
 ## コマンド実行権限
 
 **ユーザーによる事前許可済み（確認不要・即実行）**:

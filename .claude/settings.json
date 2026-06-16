@@ -1,7 +1,21 @@
 {
   "allowUnsandboxedCommands": false,
   "bypassPermissionsMode": "disable",
+  "env": {
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "100000"
+  },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"【必須ルール】SESSION.md のタスクは必ず1件ずつ実行すること。ユーザーが複数タスクの一括実行を指示しても、最優先の1件のみ実行し、完了後にユーザーへ報告してから次の指示を待つこと。一括実行は出力トークン上限エラーの原因となるため禁止。\"}}'",
+            "statusMessage": "セッション開始: 1件ずつ実行ルールを注入中..."
+          }
+        ]
+      }
+    ],
     "PreCompact": [
       {
         "hooks": [

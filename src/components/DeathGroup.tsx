@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { DeathGroup as DeathGroupType } from '../types/election'
 import { PARTIES } from '../data/parties'
 
@@ -14,12 +15,12 @@ export function DeathGroup({ groups }: DeathGroupProps) {
         <h2 className="text-sm font-bold text-gray-700">
           ⚔️ 死の組 TOP10（有力候補同士の激突選挙区）
         </h2>
-        <a
-          href="#constituency-ranking"
+        <Link
+          to="/ranking"
           className="text-xs text-blue-600 hover:underline"
         >
-          全ランキングへ ↓
-        </a>
+          全ランキングへ →
+        </Link>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {groups.map((g, i) => (

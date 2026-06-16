@@ -9,9 +9,9 @@
 
 | ID | タスク | 依存 | 状態 |
 |---|---|---|---|
-| P5-1 | `vite.config.ts` base パス設定 | P1-1 | 未着手 |
-| P5-2 | `.github/workflows/deploy.yml` 作成 | P5-1 | 未着手 |
-| P5-3 | GitHub リポジトリ設定・初回デプロイ | P5-2 | 未着手 |
+| P5-1 | `vite.config.ts` base パス設定 | P1-1 | ✅ 完了 |
+| P5-2 | `.github/workflows/deploy.yml` 作成 | P5-1 | ✅ 完了 |
+| P5-3 | GitHub リポジトリ設定・初回デプロイ | P5-2 | 🔄 git init + 初回コミット済み。push 待ち |
 | P5-4 | 公開後の動作確認 | P5-3 | 未着手 |
 
 ---

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { shuffleCandidates, assignCandidates } from '../engine/simulator'
+import { shuffleCandidates, assignCandidates, assignCandidatesWithPartyDistribution } from '../engine/simulator'
 import type { Candidate, Constituency } from '../types/election'
 
 // テスト用フィクスチャ
@@ -106,6 +106,46 @@ describe('assignCandidates', () => {
     const result = assignCandidates(candidates, constituencies)
     for (const c of constituencies) {
       expect(result[c.id]).toBeDefined()
+    }
+  })
+})
+
+describe('assignCandidatesWithPartyDistribution', () => {
+  it('全候補者がいずれかの選挙区に割り当てられる', () => {
+    const parties = ['ldp', 'crc', 'jcp'] as const
+    const candidates = Array.from({ length: 30 }, (_, i) =>
+      makeCandidate(i + 1, { partyId: parties[i % 3] }),
+    )
+    const constituencies = Array.from({ length: 10 }, (_, i) => makeConstituency(i + 1))
+    const result = assignCandidatesWithPartyDistribution(candidates, constituencies, 42)
+    const total = Object.values(result).reduce((s, g) => s + g.length, 0)
+    expect(total).toBe(candidates.length)
+  })
+
+  it('同一政党が同一選挙区に重複しない（各政党6人・10選挙区）', () => {
+    const parties = ['ldp', 'crc', 'jcp', 'dpfp', 'ishin'] as const
+    // 各政党6人、10選挙区 → 1選挙区あたり3人、最大5政党 → 重複なく配置可能
+    const candidates = Array.from({ length: 30 }, (_, i) =>
+      makeCandidate(i + 1, { partyId: parties[i % 5] }),
+    )
+    const constituencies = Array.from({ length: 10 }, (_, i) => makeConstituency(i + 1))
+    const result = assignCandidatesWithPartyDistribution(candidates, constituencies, 1)
+    for (const [, group] of Object.entries(result)) {
+      const partyIds = group.map(c => c.partyId)
+      const unique = new Set(partyIds)
+      expect(unique.size).toBe(partyIds.length)
+    }
+  })
+
+  it('固定シードで再現性がある', () => {
+    const candidates = Array.from({ length: 50 }, (_, i) =>
+      makeCandidate(i + 1, { partyId: i % 2 === 0 ? 'ldp' : 'crc' }),
+    )
+    const constituencies = Array.from({ length: 10 }, (_, i) => makeConstituency(i + 1))
+    const a = assignCandidatesWithPartyDistribution(candidates, constituencies, 99)
+    const b = assignCandidatesWithPartyDistribution(candidates, constituencies, 99)
+    for (const c of constituencies) {
+      expect(a[c.id].map(x => x.id)).toEqual(b[c.id].map(x => x.id))
     }
   })
 })

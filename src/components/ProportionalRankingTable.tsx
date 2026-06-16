@@ -95,8 +95,9 @@ export function ProportionalRankingTable({ entries }: Props) {
                 <th className="text-left px-2 py-1">氏名</th>
                 <th className="text-left px-2 py-1 hidden sm:table-cell">政党</th>
                 <th className="text-left px-2 py-1 hidden md:table-cell">ブロック</th>
-                <th className="text-right px-2 py-1">実際の惜敗率</th>
-                <th className="text-right px-2 py-1">シミュ惜敗率</th>
+                <th className="text-left px-2 py-1">選挙区</th>
+                <th className="text-right px-2 py-1 hidden lg:table-cell">実際の惜敗率</th>
+                <th className="text-right px-2 py-1 hidden lg:table-cell">シミュ惜敗率</th>
                 <th className="text-center px-2 py-1">実際</th>
                 <th className="text-center px-2 py-1">シミュ</th>
               </tr>
@@ -126,23 +127,34 @@ export function ProportionalRankingTable({ entries }: Props) {
                       {p?.shortName ?? e.partyId}
                     </td>
                     <td className="px-2 py-1 text-gray-500 hidden md:table-cell">{e.bloc}</td>
-                    <td className="text-right px-2 py-1 font-mono text-gray-600">
+                    <td className="px-2 py-1 text-gray-400 text-xs">
+                      {e.constituencyName ?? <span className="italic">比例単独</span>}
+                    </td>
+                    <td className="text-right px-2 py-1 font-mono text-gray-600 hidden lg:table-cell">
                       {e.realHaiseiritsu >= 1.0
-                        ? '小選挙区当選'
+                        ? '—'
                         : `${(e.realHaiseiritsu * 100).toFixed(1)}%`}
                     </td>
-                    <td className="text-right px-2 py-1 font-mono text-gray-600">
+                    <td className="text-right px-2 py-1 font-mono text-gray-600 hidden lg:table-cell">
                       {e.simHaiseiritsu === null
-                        ? '小選挙区当選'
+                        ? '—'
                         : e.simHaiseiritsu === 0
                         ? '—'
                         : `${(e.simHaiseiritsu * 100).toFixed(1)}%`}
                     </td>
                     <td className="text-center px-2 py-1">
-                      <ElectedBadge elected={e.realElected} smdWin={e.realHaiseiritsu >= 1.0} />
+                      <StatusLabel
+                        elected={e.realElected}
+                        smdWin={e.realHaiseiritsu >= 1.0}
+                        proportionalOnly={e.isProportionalOnly}
+                      />
                     </td>
                     <td className="text-center px-2 py-1">
-                      <ElectedBadge elected={e.simElected} smdWin={e.simHaiseiritsu === null} />
+                      <StatusLabel
+                        elected={e.simElected}
+                        smdWin={e.simHaiseiritsu === null}
+                        proportionalOnly={e.isProportionalOnly}
+                      />
                     </td>
                   </tr>
                 )
@@ -160,8 +172,35 @@ export function ProportionalRankingTable({ entries }: Props) {
   )
 }
 
-function ElectedBadge({ elected, smdWin }: { elected: boolean; smdWin: boolean }) {
-  if (smdWin) return <span className="text-blue-600 font-bold">小</span>
-  if (elected) return <span className="text-green-600 font-bold">○</span>
-  return <span className="text-gray-400">✗</span>
+function StatusLabel({
+  elected,
+  smdWin,
+  proportionalOnly,
+}: {
+  elected: boolean
+  smdWin: boolean
+  proportionalOnly: boolean
+}) {
+  if (smdWin) {
+    return (
+      <span className="inline-block px-1 py-0.5 rounded text-white text-xs font-medium bg-blue-600 whitespace-nowrap">
+        小選挙区当選
+      </span>
+    )
+  }
+  if (elected && proportionalOnly) {
+    return (
+      <span className="inline-block px-1 py-0.5 rounded text-white text-xs font-medium bg-purple-500 whitespace-nowrap">
+        比例単独当選
+      </span>
+    )
+  }
+  if (elected) {
+    return (
+      <span className="inline-block px-1 py-0.5 rounded text-white text-xs font-medium bg-green-600 whitespace-nowrap">
+        比例復活
+      </span>
+    )
+  }
+  return <span className="text-gray-400 text-xs">落選</span>
 }

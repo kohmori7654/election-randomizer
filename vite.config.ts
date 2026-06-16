@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  base: '/election_randomizer/',
+  base: '/election-randomizer/',
   plugins: [
     react(),
     tailwindcss(),

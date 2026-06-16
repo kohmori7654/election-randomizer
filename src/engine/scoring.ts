@@ -50,6 +50,7 @@ export function calcVoteSplitPenalty(
  * @param voteSplitContext     同一選挙区内の競合数（省略可能）
  * @param originalConstituency 候補者の本来の選挙区（HomeBonus計算に使用）
  * @param random               票割れペナルティ用乱数生成器
+ * @param incumbencyBonus      現職/元職ボーナス（runner.ts で事前計算して渡す、デフォルト0）
  */
 export function calculateScore(
   candidate: Candidate,
@@ -59,6 +60,7 @@ export function calculateScore(
   voteSplitContext?: { samePartyCount: number; sameBlocCount: number },
   originalConstituency?: Constituency,
   random: () => number = Math.random,
+  incumbencyBonus: number = 0,
 ): number {
   const { originalVoteRateWeight, groundWeight, ageWeight, randomWeight, homeWeight } = params
 
@@ -98,12 +100,19 @@ export function calculateScore(
     }
   }
 
+  // incumbencyBonus 分を VoteRate・Ground・Random・Home から比例差引き（AgeBonus は対象外）
+  const otherTotal = originalVoteRateWeight + groundWeight + randomWeight + homeWeight
+  const scale = otherTotal > 0
+    ? Math.max(0, otherTotal - incumbencyBonus) / otherTotal
+    : 1
+
   const baseScore =
-    voteScore  * originalVoteRateWeight +
-    groundScore * groundWeight +
-    ageScore   * ageWeight +
-    randScore  * randomWeight +
-    homeScore  * homeWeight
+    voteScore   * (originalVoteRateWeight * scale) +
+    groundScore * (groundWeight           * scale) +
+    ageScore    *  ageWeight                       +
+    randScore   * (randomWeight           * scale) +
+    homeScore   * (homeWeight             * scale) +
+    incumbencyBonus
 
   const splitPenalty = voteSplitContext
     ? calcVoteSplitPenalty(voteSplitContext.samePartyCount, voteSplitContext.sameBlocCount, random)

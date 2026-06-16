@@ -48,10 +48,13 @@ export default function App() {
   const [state, setState] = useState<AppState>({ phase: 'loading' })
   const [simulationCount, setSimulationCount] = useState(0)
 
+  // StrictMode の二重発火でキャンセル済みの Promise が setState を呼ばないようにする
   useEffect(() => {
+    let cancelled = false
     loadAppData()
-      .then(data => setState({ phase: 'ready', data }))
-      .catch(err => setState({ phase: 'error', message: String(err) }))
+      .then(data => { if (!cancelled) setState({ phase: 'ready', data }) })
+      .catch(err => { if (!cancelled) setState({ phase: 'error', message: String(err) }) })
+    return () => { cancelled = true }
   }, [])
 
   const handleSimulate = useCallback(() => {
@@ -77,16 +80,20 @@ export default function App() {
     }, 0)
   }, [state])
 
-  // 初回ロード完了時に自動シミュレーション実行（StrictMode の二重発火を useRef で防ぐ）
+  // handleSimulate の最新版を ref で保持（auto-run effect の deps を state.phase のみに限定）
+  const handleSimulateRef = useRef(handleSimulate)
+  useEffect(() => { handleSimulateRef.current = handleSimulate })
+
+  // 初回ロード完了時に自動シミュレーション実行
   const autoRunRef = useRef(false)
   useEffect(() => {
     if (state.phase === 'ready' && !autoRunRef.current) {
       autoRunRef.current = true
-      handleSimulate()
+      handleSimulateRef.current()
     }
-  }, [state.phase, handleSimulate])
+  }, [state.phase])
 
-  const isLoading = state.phase === 'loading' || state.phase === 'running'
+  const isLoading = state.phase === 'loading' || state.phase === 'ready' || state.phase === 'running'
 
   const mainContent = (
     <div className="min-h-screen bg-gray-50">
@@ -96,7 +103,7 @@ export default function App() {
         simulationCount={simulationCount}
       />
 
-      {state.phase === 'loading' && (
+      {(state.phase === 'loading' || state.phase === 'ready') && (
         <div className="flex items-center justify-center h-64">
           <p className="text-gray-500">データを読み込み中…</p>
         </div>
@@ -105,22 +112,6 @@ export default function App() {
       {state.phase === 'error' && (
         <div className="flex items-center justify-center h-64">
           <p className="text-red-500">エラー: {state.message}</p>
-        </div>
-      )}
-
-      {state.phase === 'ready' && (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <p className="text-gray-600 mb-4">
-              1,119人の候補者を289選挙区にランダム配置してシミュレーションを実行します。
-            </p>
-            <button
-              onClick={handleSimulate}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-3 rounded-lg text-lg transition-colors"
-            >
-              シミュレーション再実行
-            </button>
-          </div>
         </div>
       )}
 

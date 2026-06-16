@@ -15,7 +15,7 @@ import { assignCandidatesWithPartyDistribution } from './simulator'
 import { calculateScore, randomizeScoringParams } from './scoring'
 import { buildDominanceMap, scoreConstituency, detectDeathGroups } from './deathGroup'
 import { simulateProportionalRevival } from './proportional'
-import { PARTIES, IDEOLOGICAL_BLOC } from '../data/parties'
+import { PARTIES, IDEOLOGICAL_BLOC, SECONDARY_BLOC } from '../data/parties'
 
 /** mulberry32 PRNG（simulator.ts と同一実装） */
 function mulberry32(seed: number): () => number {
@@ -144,6 +144,8 @@ function buildRankingChanges(
         partyId: partyId as PartyId,
         bloc: bloc as BlocName,
         smdCandidateId: smdId,
+        isProportionalOnly: false,
+        constituencyName: smd.constituencyName ?? null,
         realHaiseiritsu: realH,
         simHaiseiritsu: simH,
         realEffectiveRank: realRank,
@@ -187,19 +189,48 @@ export function runSimulation(
     const assigned = assignmentMap[constituency.id] ?? []
 
     // 票割れ: 選挙区内の政党・イデオロギーブロックの競合数を事前集計
+    // 'other' ブロックはブロックペナルティ対象外、二次ブロック持ちは両方に加算
     const partyCountMap = new Map<PartyId, number>()
     const blocCountMap  = new Map<string, number>()
     for (const c of assigned) {
       partyCountMap.set(c.partyId, (partyCountMap.get(c.partyId) ?? 0) + 1)
-      const bloc = IDEOLOGICAL_BLOC[c.partyId] ?? 'center'
-      blocCountMap.set(bloc, (blocCountMap.get(bloc) ?? 0) + 1)
+      const bloc = IDEOLOGICAL_BLOC[c.partyId]
+      if (bloc !== 'other') {
+        blocCountMap.set(bloc, (blocCountMap.get(bloc) ?? 0) + 1)
+        const secondary = SECONDARY_BLOC[c.partyId]
+        if (secondary) {
+          blocCountMap.set(secondary, (blocCountMap.get(secondary) ?? 0) + 1)
+        }
+      }
     }
 
     const simCandidates: SimCandidate[] = assigned.map(c => {
       const samePartyCount = (partyCountMap.get(c.partyId) ?? 1) - 1
-      const bloc = IDEOLOGICAL_BLOC[c.partyId] ?? 'center'
-      const sameBlocCount = ((blocCountMap.get(bloc) ?? 1) - 1) - samePartyCount
+      const bloc = IDEOLOGICAL_BLOC[c.partyId]
+      let sameBlocCount: number
+      if (bloc === 'other') {
+        sameBlocCount = 0
+      } else {
+        const primaryCount = ((blocCountMap.get(bloc) ?? 1) - 1) - samePartyCount
+        const secondary = SECONDARY_BLOC[c.partyId]
+        if (secondary) {
+          const secondaryCount = ((blocCountMap.get(secondary) ?? 1) - 1) - samePartyCount
+          sameBlocCount = Math.max(primaryCount, secondaryCount)
+        } else {
+          sameBlocCount = primaryCount
+        }
+      }
       const originalConstituency = constituencyMap.get(c.senkyokuId)
+
+      // PRNG シーケンス安定化のため新人でも常に 1 回消費する
+      const rawInc = rand()
+      const incumbencyBonus =
+        c.elected === 'smd_win' || c.elected === 'proportional_win'
+          ? 0.10 + rawInc * 0.10   // 現職: 0.10〜0.20
+          : c.status === '元職'
+          ? 0.05 + rawInc * 0.10   // 元職（落選）: 0.05〜0.15
+          : 0.0                    // 新人: 0
+
       return {
         ...c,
         assignedConstituencyId: constituency.id,
@@ -207,6 +238,7 @@ export function runSimulation(
           c, constituency, rand(), params,
           { samePartyCount, sameBlocCount },
           originalConstituency, rand,
+          incumbencyBonus,
         ),
       }
     })
